@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The OpenEBS Authors.
+Copyright 2019 The LitmusChaos Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,9 +34,9 @@ import (
 
 const (
 	validatorServiceName = "admission-server-svc"
-	validatorWebhook     = "openebs-validation-webhook-cfg"
+	validatorWebhook     = "litmuschaos-validation-webhook-cfg"
 	validatorSecret      = "admission-server-secret"
-	webhookHandlerName   = "admission-webhook.openebs.io"
+	webhookHandlerName   = "admission-webhook.litmuschaos.io"
 	validationPath       = "/validate"
 	validationPort       = 8443
 	webhookLabel         = "litmuschaos.io/component-name" + "=" + "admission-webhook"
@@ -104,7 +104,7 @@ func createWebhookService(
 			Name:      serviceName,
 			Labels: map[string]string{
 				"app":                            "admission-webhook",
-				"openebs.io/component-name":      "admission-webhook-svc",
+				"litmuschaos.io/component-name":  "admission-webhook-svc",
 				string("litmuschaos.io/version"): "v1.3.0",
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
@@ -197,7 +197,7 @@ func createAdmissionService(
 			Name: validatorWebhook,
 			Labels: map[string]string{
 				"app":                            "admission-webhook",
-				"openebs.io/component-name":      "admission-webhook",
+				"litmuschaos.io/component-name":  "admission-webhook",
 				string("litmuschaos.io/version"): "v1.3.0",
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
@@ -252,7 +252,7 @@ func createCertsSecret(
 			Namespace: namespace,
 			Labels: map[string]string{
 				"app":                            "admission-webhook",
-				"openebs.io/component-name":      "admission-webhook",
+				"litmuschaos.io/component-name":  "admission-webhook",
 				string("litmuschaos.io/version"): "v1.3.0",
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
@@ -269,8 +269,7 @@ func createCertsSecret(
 	//return secret.NewKubeClient(secret.WithNamespace(namespace)).Create(secretObj)
 }
 
-// GetValidatorWebhook fetches the webhook validator resource in
-// Openebs namespace.
+// GetValidatorWebhook fetches the webhook validator resource
 func GetValidatorWebhook(
 	validator string,
 	kubeClient *kubernetes.Clientset,
@@ -286,7 +285,7 @@ func StrPtr(s string) *string {
 
 // InitValidationServer creates secret, service and admission validation k8s
 // resources. All these resources are created in the same namespace where
-// openebs components is running.
+// litmus components is running.
 func InitValidationServer(ownerReference metav1.OwnerReference, kubeClient *kubernetes.Clientset) error {
 
 	// Fetch our namespace
@@ -381,7 +380,7 @@ func GetSecret(
 	return kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
 }
 
-// getOpenebsNamespace gets the namespace OPENEBS_NAMESPACE env value which is
+// getLitmusNamespace gets the namespace ADMISSION_NAMESPACE env value which is
 // set by the downward API where admission server has been deployed
 func getLitmusNamespace() (string, error) {
 	ns, found := os.LookupEnv("ADMISSION_NAMESPACE")
@@ -418,7 +417,8 @@ func GetAdmissionReference(kubeClient *kubernetes.Clientset) (*metav1.OwnerRefer
 	if err != nil {
 		return nil, fmt.Errorf("failed to list admission deployment: %s", err.Error())
 	}
-
+	fmt.Printf("Printing Vital Information\n")
+	fmt.Printf("Printing the List of Deployments found: %v", admdeployList.Items)
 	for _, admdeploy := range admdeployList.Items {
 		if len(admdeploy.Name) != 0 {
 			return metav1.NewControllerRef(admdeploy.GetObjectMeta(), schema.GroupVersionKind{
@@ -436,7 +436,6 @@ func GetAdmissionReference(kubeClient *kubernetes.Clientset) (*metav1.OwnerRefer
 // then 1.4.0 if exists delete them.
 func preUpgrade(litmusNamespace string, kubeClient *kubernetes.Clientset) error {
 	secretlist, err := kubeClient.CoreV1().Secrets(litmusNamespace).List(metav1.ListOptions{LabelSelector: webhookLabel})
-	//secretlist, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhookLabel})
 	if err != nil {
 		return fmt.Errorf("failed to list old secret: %s", err.Error())
 	}
@@ -445,7 +444,6 @@ func preUpgrade(litmusNamespace string, kubeClient *kubernetes.Clientset) error 
 		if scrt.Labels[string("litmuschaos.io/version")] != "v1.3.0" {
 			if scrt.Labels[string("litmuschaos.io/version")] == "" {
 				err = kubeClient.CoreV1().Secrets(litmusNamespace).Delete(scrt.Name, &metav1.DeleteOptions{})
-				//err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Delete(scrt.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
 				}
@@ -456,7 +454,6 @@ func preUpgrade(litmusNamespace string, kubeClient *kubernetes.Clientset) error 
 				}
 				newScrt.Labels[string("litmuschaos.io/version")] = "v1.3.0"
 				_, err := kubeClient.CoreV1().Secrets(litmusNamespace).Update(&newScrt)
-				//_, err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Update(&newScrt)
 				if err != nil {
 					return fmt.Errorf("failed to update old secret %s: %s", scrt.Name, err.Error())
 				}
@@ -464,7 +461,6 @@ func preUpgrade(litmusNamespace string, kubeClient *kubernetes.Clientset) error 
 		}
 	}
 	svcList, err := kubeClient.CoreV1().Services(litmusNamespace).List(metav1.ListOptions{LabelSelector: webhooksvcLabel})
-	//svcList, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhooksvcLabel})
 	if err != nil {
 		return fmt.Errorf("failed to list old service: %s", err.Error())
 	}

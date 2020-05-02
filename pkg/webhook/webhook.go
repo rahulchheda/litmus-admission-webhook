@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The OpenEBS Authors.
+Copyright 2019 The LitmusChaos Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -180,97 +180,6 @@ func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool 
 	return required
 }
 
-// validatePVCDeleteRequest validates the persistentvolumeclaim(PVC) delete request
-// func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-// 	response := &v1beta1.AdmissionResponse{}
-// 	response.Allowed = true
-
-// 	// ignore the Delete request of PVC if resource name is empty which
-// 	// can happen as part of cleanup process of namespace
-// 	if req.Name == "" {
-// 		return response
-// 	}
-
-// 	klog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
-// 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
-
-// 	// TODO* use raw object once validation webhooks support DELETE request
-// 	// object as non nil value https://github.com/kubernetes/kubernetes/issues/66536
-// 	//var pvc corev1.PersistentVolumeClaim
-// 	//err := json.Unmarshal(req.Object.Raw, &pvc)
-// 	//if err != nil {
-// 	//	klog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
-// 	//	status.Allowed = false
-// 	//	status.Result = &metav1.Status{
-// 	//		Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-// 	//		Message: err.Error(),
-// 	//	}
-// 	//	return status
-// 	//}
-
-// 	// fetch the pvc specifications
-// 	pvc, err := wh.kubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).Get(req.Name, metav1.GetOptions{})
-// 	if err != nil {
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("error retrieving PVC: %v", err.Error()),
-// 		}
-// 		return response
-// 	}
-
-// 	if !validationRequired(ignoredNamespaces, &pvc.ObjectMeta) {
-// 		klog.V(4).Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
-// 		return response
-// 	}
-
-// 	// construct source-volume label to list all the matched cstorVolumes
-// 	label := fmt.Sprintf("openebs.io/source-volume=%s", pvc.Spec.VolumeName)
-// 	listOptions := metav1.ListOptions{
-// 		LabelSelector: label,
-// 	}
-
-// 	// get the all CStorVolumes resources in all namespaces based on the
-// 	// source-volume label to verify if there is any clone volume exists.
-// 	// if source-volume label matches with name of PV, failed the pvc
-// 	// deletion operation.
-
-// 	cStorVolumes, err := wh.getCstorVolumes(listOptions)
-// 	if err != nil {
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("error retrieving CstorVolumes: %v", err.Error()),
-// 		}
-// 		return response
-// 	}
-
-// 	if len(cStorVolumes.Items) != 0 {
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC with cloned volumes can't be deleted",
-// 			Message: fmt.Sprintf("pvc %q has '%v' cloned volume(s)", pvc.Name, len(cStorVolumes.Items)),
-// 		}
-// 		return response
-// 	}
-
-// 	cStorVolumeClaims, err := wh.getCstorVolumeClaims(listOptions)
-// 	if err != nil {
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("error retrieving CstorVolumeClaims: %v", err.Error()),
-// 		}
-// 		return response
-// 	}
-
-// 	if len(cStorVolumeClaims.Items) != 0 {
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC with cloned volumes can't be deleted",
-// 			Message: fmt.Sprintf("pvc %q has '%v' cloned volume(s)", pvc.Name, len(cStorVolumeClaims.Items)),
-// 		}
-// 		return response
-// 	}
-// 	return response
-// }
 func (wh *webhook) validateChaosEngineCreate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
@@ -302,106 +211,17 @@ func (wh *webhook) validateChaosEngineCreate(req *v1beta1.AdmissionRequest) *v1b
 	return response
 }
 
-// validatePVCCreateRequest validates persistentvolumeclaim(PVC) create request
-// func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-// 	response := &v1beta1.AdmissionResponse{}
-// 	response.Allowed = true
-
-// 	var pvc corev1.PersistentVolumeClaim
-// 	err := json.Unmarshal(req.Object.Raw, &pvc)
-// 	if err != nil {
-// 		klog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Status:  metav1.StatusFailure,
-// 			Code:    http.StatusBadRequest,
-// 			Reason:  metav1.StatusReasonBadRequest,
-// 			Message: err.Error(),
-// 		}
-// 		return response
-// 	}
-
-// 	// If snapshot.alpha.kubernetes.io/snapshot annotation represents the clone pvc
-// 	// create request
-// 	snapname := pvc.Annotations[snapshotAnnotation]
-// 	if len(snapname) == 0 {
-// 		return response
-// 	}
-
-// 	klog.V(4).Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
-// 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
-// 	// get the snapshot object to get snapshotdata object
-// 	// Note: If snapname is empty then below call will retrun error
-// 	snapObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
-// 	if err != nil {
-// 		klog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
-// 			"error: '%v'", snapname, pvc.Namespace, pvc.Name, err)
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("Failed to get the snapshot object for snapshot name: '%s' namespace: '%s' "+
-// 				"error: '%v'", snapname, pvc.Namespace, err.Error()),
-// 		}
-// 		return response
-// 	}
-
-// 	snapDataName := snapObj.Spec.SnapshotDataName
-// 	if len(snapDataName) == 0 {
-// 		klog.Errorf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s' PVC: '%s'",
-// 			snapname, snapObj.ObjectMeta.Namespace, pvc.Name)
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s'",
-// 				snapname, snapObj.ObjectMeta.Namespace),
-// 		}
-// 		return response
-// 	}
-// 	klog.V(4).Infof("snapshotdata name: '%s'", snapDataName)
-
-// 	// get the snapDataObj to get the snapshotdataname
-// 	// Note: If snapDataName is empty then below call will return error
-// 	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
-// 	if err != nil {
-// 		klog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
-// 			"snapName: '%s' namespace: '%s' PVC: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, pvc.Name, err)
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
-// 				"snapName: '%s' namespace: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, err.Error()),
-// 		}
-// 		return response
-// 	}
-
-// 	snapSizeString := snapDataObj.Spec.OpenEBSSnapshot.Capacity
-// 	// If snapshotdata object doesn't consist Capacity field then we will log it and return false.
-// 	if len(snapSizeString) == 0 {
-// 		klog.Infof("snapshot size not found for snapshot name: '%s' snapshot namespace: '%s' snapshotdata name: '%s'",
-// 			snapname, snapObj.ObjectMeta.Namespace, snapDataName)
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("PVC: '%s' creation requires upgrade of volumesnapshotdata name: '%s'", pvc.ObjectMeta.Name, snapDataName),
-// 		}
-// 		return response
-// 	}
-
-// 	snapCapacity := resource.MustParse(snapSizeString)
-// 	pvcSize := pvc.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)]
-// 	if pvcSize.Cmp(snapCapacity) != 0 {
-// 		klog.Errorf("Requested pvc size not matched the snapshot size '%s' belongs to snapshot name: '%s' "+
-// 			"snapshot Namespace: '%s' VolumeSnapshotData '%s'", snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName)
-// 		response.Allowed = false
-// 		response.Result = &metav1.Status{
-// 			Message: fmt.Sprintf("Requested pvc size must be equal to snapshot size '%s' "+
-// 				"which belongs to snapshot name: '%s' snapshot NameSpace: '%s' volumesnapshotdata: '%s'",
-// 				snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName),
-// 		}
-// 		return response
-// 	}
-// 	return response
-// }
 
 // validate validates the persistentvolumeclaim(PVC) create, delete request
 func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	req := ar.Request
+	var (
+		//availableLabels, availableAnnotations map[string]string
+		//objectMeta                            *metav1.ObjectMeta
+		resourceName string
+	)
+	klog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+		req.Kind, req.Namespace, req.Name, resourceName, req.UID, req.Operation, req.UserInfo)
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
 	klog.Info("Admission webhook request received")
@@ -453,16 +273,6 @@ func (wh *webhook) validateChaosEngine(ar *v1beta1.AdmissionReview) *v1beta1.Adm
 	return response
 }
 
-// // getCstorVolumes gets the list of CstorVolumes based in the source-volume labels
-// func (wh *webhook) getCstorVolumes(listOptions metav1.ListOptions) (*v1alpha1.CStorVolumeList, error) {
-// 	return wh.clientset.OpenebsV1alpha1().CStorVolumes("").List(listOptions)
-// }
-
-// // getCstorVolumeClaims gets the list of CstorVolumeclaims based in the source-volume labels
-// func (wh *webhook) getCstorVolumeClaims(listOptions metav1.ListOptions) (*v1alpha1.CStorVolumeClaimList, error) {
-// 	return wh.clientset.OpenebsV1alpha1().CStorVolumeClaims("").List(listOptions)
-// }
-
 // Serve method for webhook server, handles http requests for webhooks
 func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	var body []byte
@@ -496,6 +306,7 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		if r.URL.Path == "/validate" {
+			klog.V(0).Infof("Got something in /validate endpoint")
 			admissionResponse = wh.validate(&ar)
 		}
 	}

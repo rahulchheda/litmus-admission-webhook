@@ -18,7 +18,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
-	github.com/openebs/maya v0.0.0-20200427061642-f52d1c16d5c9
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2 // indirect
@@ -34,7 +33,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.2.2 // indirect
 	k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
-	k8s.io/apiextensions-apiserver v0.0.0-20190918201827-3de75813f604
 	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
 	k8s.io/client-go v0.0.0-20190918200256-06eb1244587a
 	k8s.io/code-generator v0.15.12-beta.0 // indirect

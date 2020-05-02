@@ -1,4 +1,4 @@
-// Copyright © 2019 The OpenEBS Authors
+// Copyright © 2019 The LitmusChaos Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ func main() {
 	// Building Litmus Clientset
 	litmusClient, err := litmuschaosv1alpha1.NewForConfig(cfg)
 	if err != nil {
-		klog.Fatalf("Error building openebs clientset: %s", err.Error())
+		klog.Fatalf("Error building litmus clientset: %s", err.Error())
 	}
 	// Fetch a reference to the admission server deployment object
 	ownerReference, err := webhook.GetAdmissionReference(kubeClient)
