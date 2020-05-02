@@ -37,6 +37,7 @@ require (
 	k8s.io/client-go v0.0.0-20190918200256-06eb1244587a
 	k8s.io/code-generator v0.15.12-beta.0 // indirect
 	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.0.0
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.7 // indirect
 	sigs.k8s.io/controller-runtime v0.3.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v3 v3.0.0 // indirect

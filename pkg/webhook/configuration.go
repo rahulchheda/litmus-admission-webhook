@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -161,21 +162,10 @@ func createAdmissionService(
 			Rule: v1beta1.Rule{
 				APIGroups:   []string{"*"},
 				APIVersions: []string{"*"},
-				Resources:   []string{"persistentvolumeclaims"},
+				Resources:   []string{"chaosengines"},
 			},
 		},
-			{
-				Operations: []v1beta1.OperationType{
-					v1beta1.Create,
-					v1beta1.Update,
-					v1beta1.Delete,
-				},
-				Rule: v1beta1.Rule{
-					APIGroups:   []string{"*"},
-					APIVersions: []string{"*"},
-					Resources:   []string{"cstorpoolclusters"},
-				},
-			}},
+		},
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
 				Namespace: namespace,
@@ -219,7 +209,7 @@ func createCertsSecret(
 	namespace string,
 	kubeClient *kubernetes.Clientset,
 ) (*corev1.Secret, error) {
-
+	klog.Infof("Inside function, which will create a certs secrets")
 	// Create a signing certificate
 	caKeyPair, err := NewCA(fmt.Sprintf("%s-ca", serviceName))
 	if err != nil {
@@ -264,7 +254,7 @@ func createCertsSecret(
 			rootCrt: EncodeCertPEM(caKeyPair.Cert),
 		},
 	}
-
+	klog.Infof("Printing the newly build Secret: %v", secretObj)
 	return kubeClient.CoreV1().Secrets(namespace).Create(secretObj)
 	//return secret.NewKubeClient(secret.WithNamespace(namespace)).Create(secretObj)
 }
@@ -293,15 +283,18 @@ func InitValidationServer(ownerReference metav1.OwnerReference, kubeClient *kube
 	if err != nil {
 		return err
 	}
+	klog.Infof("Namespace: %v", litmusNamespace)
 
-	err = preUpgrade(litmusNamespace, kubeClient)
-	if err != nil {
-		return err
-	}
+	// err = preUpgrade(litmusNamespace, kubeClient)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Check to see if webhook secret is already present
 	certSecret, err := GetSecret(litmusNamespace, validatorSecret, kubeClient)
+	klog.Infof("Secret Found: %v,", certSecret)
 	if err != nil {
+		klog.Infof("Secret Not Found, so creating")
 		if k8serror.IsNotFound(err) {
 			// Secret not found, create certs and the secret object
 			certSecret, err = createCertsSecret(
@@ -441,6 +434,7 @@ func preUpgrade(litmusNamespace string, kubeClient *kubernetes.Clientset) error 
 	}
 
 	for _, scrt := range secretlist.Items {
+		klog.Infof("Printing Secret found: %v", scrt)
 		if scrt.Labels[string("litmuschaos.io/version")] != "v1.3.0" {
 			if scrt.Labels[string("litmuschaos.io/version")] == "" {
 				err = kubeClient.CoreV1().Secrets(litmusNamespace).Delete(scrt.Name, &metav1.DeleteOptions{})
